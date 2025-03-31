@@ -33,13 +33,13 @@ public class DESXGUI extends JFrame {
         JButton loadFileButton = new JButton("Wczytaj z pliku");
         JButton saveFileButton = new JButton("Zapisz wynik do pliku");
 
-        add(new JLabel("Tekst (dowolna długość) lub HEX do deszyfrowania:"));
+        add(new JLabel("Tekst (dowolna długość):"));
         add(inputField);
-        add(new JLabel("Klucz K1 (HEX lub liczba):"));
+        add(new JLabel("Klucz głowny DES):"));
         add(key1Field);
-        add(new JLabel("Klucz K2 (HEX lub liczba):"));
+        add(new JLabel("Klucz prewhitening :"));
         add(key2Field);
-        add(new JLabel("Klucz K3 (HEX lub liczba):"));
+        add(new JLabel("Klucz postwhitening:"));
         add(key3Field);
         add(encryptButton);
         add(decryptButton);
