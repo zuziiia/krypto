@@ -13,7 +13,7 @@ public class DESXGUI extends JFrame {
     private JTextField key3Field;
     private JTextField outputField;
 
-    private byte[] fileInputBytes = null; // przechowuje bajty z pliku (binaria)
+    private byte[] fileInputBytes = null;
 
     public DESXGUI() {
         setTitle("DESX Szyfrowanie/Deszyfrowanie");
@@ -33,9 +33,9 @@ public class DESXGUI extends JFrame {
         JButton loadFileButton = new JButton("Wczytaj z pliku");
         JButton saveFileButton = new JButton("Zapisz wynik do pliku");
 
-        add(new JLabel("Tekst (dowolna długość):"));
+        add(new JLabel("Tekst (dowolna długość) lub HEX do deszyfrowania:"));
         add(inputField);
-        add(new JLabel("Klucz głowny DES):"));
+        add(new JLabel("Klucz główny DES:"));
         add(key1Field);
         add(new JLabel("Klucz prewhitening :"));
         add(key2Field);
@@ -48,11 +48,17 @@ public class DESXGUI extends JFrame {
         add(new JLabel("Wynik (HEX / Tekst):"));
         add(outputField);
 
-        // --- Szyfrowanie ---
+        // Szyfrowanie
         encryptButton.addActionListener(e -> {
             try {
-                fileInputBytes = null; // reset, jeśli wcześniej był plik
-                byte[] paddedInput = pad(inputField.getText().getBytes("UTF-8"));
+                byte[] paddedInput;
+                boolean binary = fileInputBytes != null;
+
+                if (binary) {
+                    paddedInput = pad(fileInputBytes); // dane binarne z pliku
+                } else {
+                    paddedInput = pad(inputField.getText().getBytes("UTF-8")); // dane z pola tekstowego
+                }
 
                 long k1 = parseKey(key1Field.getText());
                 long k2 = parseKey(key2Field.getText());
@@ -65,19 +71,26 @@ public class DESXGUI extends JFrame {
                     output.write(longToBytes(encrypted));
                 }
 
-                outputField.setText(bytesToHex(output.toByteArray()));
+                fileInputBytes = output.toByteArray();
+
+                if (binary || inputField.getText().startsWith("[Plik binarny")) {
+                    outputField.setText("[Zaszyfrowano dane – gotowe do zapisu]");
+                } else {
+                    outputField.setText(bytesToHex(fileInputBytes));
+                }
 
             } catch (Exception ex) {
                 showError("Błąd szyfrowania: " + ex.getMessage());
             }
         });
 
-        // --- Deszyfrowanie ---
+        // Deszyfrowanie
         decryptButton.addActionListener(e -> {
             try {
                 byte[] cipherBytes;
+                boolean binary = fileInputBytes != null;
 
-                if (fileInputBytes != null) {
+                if (binary) {
                     cipherBytes = fileInputBytes;
                     if (cipherBytes.length % 8 != 0) {
                         showError("Długość danych binarnych nie jest wielokrotnością 8 bajtów.");
@@ -107,15 +120,21 @@ public class DESXGUI extends JFrame {
                 }
 
                 byte[] unpadded = unpad(baos.toByteArray());
-                outputField.setText(new String(unpadded, "UTF-8"));
-                fileInputBytes = null; // reset po użyciu
+                fileInputBytes = unpadded;
+
+                String inputText = inputField.getText().trim();
+                if (fileInputBytes != null && !inputText.matches("(?i)^[0-9a-f\\s]+$")) {
+                    outputField.setText("[Odszyfrowano dane – gotowe do zapisu]");
+                } else {
+                    outputField.setText(new String(unpadded, "UTF-8"));
+                }
 
             } catch (Exception ex) {
                 showError("Błąd deszyfrowania: " + ex.getMessage());
             }
         });
 
-        // --- Wczytaj z pliku ---
+        // Wczytaj z pliku
         loadFileButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
@@ -125,9 +144,9 @@ public class DESXGUI extends JFrame {
 
                     if (asString.matches("(?i)^[0-9a-f\\s]+$") && asString.length() % 16 == 0) {
                         inputField.setText(asString.replaceAll("\\s+", ""));
-                        fileInputBytes = null; // nie potrzebujemy bajtów, to czysty HEX
+                        fileInputBytes = null;
                     } else {
-                        inputField.setText("[Plik binarny wczytany – gotowy do deszyfrowania]");
+                        inputField.setText("[Plik binarny wczytany – gotowy do przetwarzania]");
                     }
 
                 } catch (IOException ex) {
@@ -136,24 +155,17 @@ public class DESXGUI extends JFrame {
             }
         });
 
-        // --- Zapisz do pliku ---
+        // Zapisz do pliku
         saveFileButton.addActionListener(e -> {
             JFileChooser chooser = new JFileChooser();
             if (chooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
                 try {
-                    byte[] data;
-                    String outputText = outputField.getText();
-                    if (outputText.matches("[0-9A-Fa-f ]+")) {
-                        String hexString = outputText.replaceAll("[^0-9A-Fa-f]", "");
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-                        for (int i = 0; i < hexString.length(); i += 2) {
-                            baos.write((byte) Integer.parseInt(hexString.substring(i, i + 2), 16));
-                        }
-                        data = baos.toByteArray();
+                    if (fileInputBytes != null) {
+                        Files.write(chooser.getSelectedFile().toPath(), fileInputBytes);
+                        outputField.setText("[Zapisano do pliku]");
                     } else {
-                        data = outputText.getBytes("UTF-8");
+                        showError("Brak danych binarnych do zapisania.");
                     }
-                    Files.write(chooser.getSelectedFile().toPath(), data);
                 } catch (IOException ex) {
                     showError("Nie udało się zapisać pliku.");
                 }
@@ -163,7 +175,7 @@ public class DESXGUI extends JFrame {
         setVisible(true);
     }
 
-    // --- Pomocnicze metody ---
+    // ---------------- Pomocnicze metody ----------------
 
     private byte[] pad(byte[] input) {
         int paddingLength = 8 - (input.length % 8);
@@ -227,6 +239,6 @@ public class DESXGUI extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new DESXGUI());
+        SwingUtilities.invokeLater(DESXGUI::new);
     }
 }
