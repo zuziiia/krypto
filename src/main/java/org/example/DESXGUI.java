@@ -16,7 +16,7 @@ public class DESXGUI extends JFrame {
     private byte[] fileInputBytes = null;
 
     public DESXGUI() {
-        setTitle("DESX Szyfrowanie/Deszyfrowanie");
+        setTitle("DESX");
         setSize(700, 350);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLayout(new GridLayout(7, 2, 5, 5));
@@ -33,7 +33,7 @@ public class DESXGUI extends JFrame {
         JButton loadFileButton = new JButton("Wczytaj z pliku");
         JButton saveFileButton = new JButton("Zapisz wynik do pliku");
 
-        add(new JLabel("Tekst (dowolna długość) lub HEX do deszyfrowania:"));
+        add(new JLabel("Tekst (dowolna długość):"));
         add(inputField);
         add(new JLabel("Klucz główny DES:"));
         add(key1Field);
@@ -45,7 +45,7 @@ public class DESXGUI extends JFrame {
         add(decryptButton);
         add(loadFileButton);
         add(saveFileButton);
-        add(new JLabel("Wynik (HEX / Tekst):"));
+        add(new JLabel("Wynik:"));
         add(outputField);
 
         // Szyfrowanie
