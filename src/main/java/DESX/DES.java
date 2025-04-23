@@ -1,5 +1,5 @@
-package org.example;
-import static org.example.Tables.*;
+package DESX;
+import static DESX.Tables.*;
 
 public class DES {
 
