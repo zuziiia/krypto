@@ -15,7 +15,7 @@ import java.nio.file.Files;
 import java.util.Base64;
 
 
-public class KnapsackGUIFX extends Application {
+public class KnapsackGUIFX3 extends Application {
     private TextField messageField;
     private TextArea privateKeyArea;
     private TextArea publicKeyArea;
@@ -209,9 +209,8 @@ public class KnapsackGUIFX extends Application {
 
                 // Sprawdź, czy dane pochodzą z pliku
                 if (isFileInput) {
-                    // Użyj danych pliku zamiast placeholdera
-                    message = new String(fileInputBytes, "UTF-8");
-                    System.out.println("Szyfrowanie danych z pliku o długości: " + fileInputBytes.length + " bajtów");
+                    // Użyj danych pliku niezależnie od zawartości pola tekstowego
+                    message = Base64.getEncoder().encodeToString(fileInputBytes);
                 } else {
                     // Użyj tekstu wprowadzonego w pole wiadomości
                     message = messageField.getText().trim();
@@ -219,18 +218,10 @@ public class KnapsackGUIFX extends Application {
                         showError("Wprowadź wiadomość do zaszyfrowania.");
                         return;
                     }
-                    System.out.println("Szyfrowanie tekstu: '" + message + "'");
                 }
-
-                System.out.println("Długość tekstu do zaszyfrowania: " + message.length() + " znaków");
 
                 // Konwersja wiadomości na tablicę bitów
                 int[] bits = convertToBits(message);
-                System.out.println("Ilość bitów: " + bits.length);
-
-                if (message.length() > 0) {
-                    System.out.println("Pierwszy znak binarnie: " + Integer.toBinaryString(message.charAt(0)));
-                }
 
                 BigInteger[] publicKey;
 
@@ -257,7 +248,6 @@ public class KnapsackGUIFX extends Application {
 
                 // Dzielenie na bloki po 8 bitów (długość klucza)
                 StringBuilder resultBuilder = new StringBuilder();
-                System.out.println("Szyfrowanie bloków:");
 
                 for (int i = 0; i < bits.length; i += 8) {
                     int[] block = new int[8];
@@ -271,12 +261,6 @@ public class KnapsackGUIFX extends Application {
                         block[j] = bits[i + j];
                     }
 
-                    System.out.print("Blok " + (i/8) + ": [");
-                    for (int bit : block) {
-                        System.out.print(bit);
-                    }
-                    System.out.print("] -> ");
-
                     BigInteger encrypted;
                     if (useGeneratedKeyCheckBox.isSelected()) {
                         encrypted = generatedKey.encrypt(block);
@@ -284,15 +268,16 @@ public class KnapsackGUIFX extends Application {
                         encrypted = algorithm.encrypt(block, publicKey);
                     }
 
-                    System.out.println(encrypted);
                     resultBuilder.append(encrypted.toString()).append(" ");
                 }
 
                 outputField.setText(resultBuilder.toString().trim());
 
-                // Po udanym szyfrowaniu wyczyść dane pliku
+                // Po udanym szyfrowaniu wyczyść dane pliku, aby uniknąć ponownego ich użycia
                 if (isFileInput) {
                     showInfo("Zaszyfrowano zawartość pliku.");
+                    // Opcjonalnie: wyczyść dane pliku po szyfrowaniu
+                    // fileInputBytes = null;
                 }
 
             } catch (Exception ex) {
@@ -308,8 +293,6 @@ public class KnapsackGUIFX extends Application {
                     showError("Wprowadź zaszyfrowaną wiadomość.");
                     return;
                 }
-
-                System.out.println("Deszyfrowanie " + encryptedBlocks.length + " bloków");
 
                 BigInteger[] privateKey;
                 BigInteger m, n;
@@ -336,14 +319,11 @@ public class KnapsackGUIFX extends Application {
 
                 // Deszyfrowanie każdego bloku
                 StringBuilder bitBuilder = new StringBuilder();
-                System.out.println("Deszyfrowanie bloków:");
 
                 for (String block : encryptedBlocks) {
                     if (block.isEmpty()) continue;
 
                     BigInteger encryptedValue = new BigInteger(block);
-                    System.out.print("Deszyfrowanie bloku " + encryptedValue + " -> ");
-
                     int[] decryptedBits;
 
                     if (useGeneratedKeyCheckBox.isSelected()) {
@@ -352,37 +332,13 @@ public class KnapsackGUIFX extends Application {
                         decryptedBits = algorithm.decrypt(encryptedValue, privateKey, m, n);
                     }
 
-                    System.out.print("[");
                     for (int bit : decryptedBits) {
                         bitBuilder.append(bit);
-                        System.out.print(bit);
                     }
-                    System.out.println("]");
                 }
 
                 // Konwersja bitów z powrotem na tekst
                 String result = convertFromBits(bitBuilder.toString());
-
-                // Sprawdź, czy wynik może być zakodowany w Base64
-                try {
-                    // Sprawdzamy czy to wygląda jak Base64 (zawiera tylko dozwolone znaki)
-                    if (result.matches("^[A-Za-z0-9+/=]+$")) {
-                        System.out.println("Wynik wygląda jak Base64, próba dekodowania...");
-                        // Próba dekodowania z Base64
-                        try {
-                            byte[] decodedBytes = Base64.getDecoder().decode(result);
-                            String decodedText = new String(decodedBytes, "UTF-8");
-                            System.out.println("Zdekodowany tekst Base64: '" + decodedText + "'");
-                            result = decodedText; // Używamy zdekodowanego tekstu
-                        } catch (Exception decodeEx) {
-                            System.out.println("Nie udało się zdekodować Base64: " + decodeEx.getMessage());
-                        }
-                    }
-                } catch (Exception ex) {
-                    // Jeśli dekodowanie nie zadziała, używamy oryginalnego wyniku
-                    System.out.println("Błąd podczas próby dekodowania Base64: " + ex.getMessage());
-                }
-
                 outputField.setText(result);
 
             } catch (Exception ex) {
@@ -398,28 +354,17 @@ public class KnapsackGUIFX extends Application {
 
             if (file != null) {
                 try {
-                    // Wczytaj zawartość pliku jako bajty
-                    fileInputBytes = Files.readAllBytes(file.toPath());
-                    System.out.println("Wczytano plik: " + file.getName() + " (" + fileInputBytes.length + " bajtów)");
+                    // Read the file content as a string first
+                    String fileContent = new String(Files.readAllBytes(file.toPath()), "UTF-8");
 
-                    // Sprawdź czy to może być tekst
-                    try {
-                        String fileContent = new String(fileInputBytes, "UTF-8");
-
-                        // Sprawdź czy to wygląda jak zaszyfrowane dane (numery oddzielone spacjami)
-                        if (fileContent.trim().matches("^[0-9\\s]+$")) {
-                            System.out.println("Wykryto plik z danymi zaszyfrowanymi");
-                            // Jeśli to zaszyfrowane dane, umieść je bezpośrednio w polu wiadomości
-                            messageField.setText(fileContent.trim());
-                            fileInputBytes = null; // Wyczyść dane binarne
-                        } else {
-                            // W przeciwnym razie, zachowaj dane binarne i pokaż info w polu wiadomości
-                            System.out.println("Wykryto plik z tekstem/danymi binarnymi");
-                            messageField.setText("[Plik wczytany - " + fileInputBytes.length + " bajtów]");
-                        }
-                    } catch (Exception textEx) {
-                        // Jeśli nie udało się odczytać jako tekst, to prawdopodobnie dane binarne
-                        System.out.println("Nie udało się odczytać pliku jako tekst, traktowanie jako dane binarne");
+                    // Check if the content appears to be encrypted data (numbers separated by spaces)
+                    if (fileContent.trim().matches("^[0-9\\s]+$")) {
+                        // If it looks like encrypted data, put it directly in the message field
+                        messageField.setText(fileContent.trim());
+                        fileInputBytes = null; // Clear any previous binary data
+                    } else {
+                        // Otherwise, treat as binary data
+                        fileInputBytes = Files.readAllBytes(file.toPath());
                         messageField.setText("[Plik wczytany - " + fileInputBytes.length + " bajtów]");
                     }
                 } catch (IOException ex) {
@@ -494,16 +439,12 @@ public class KnapsackGUIFX extends Application {
         }
     }
 
-    // Konwersja tekstu na bity - poprawiona wersja z debugowaniem
+    // Konwersja tekstu na bity
     private int[] convertToBits(String text) {
-        System.out.println("Oryginalny tekst: '" + text + "'");
         byte[] bytes = text.getBytes();
-        System.out.println("Ilość bajtów: " + bytes.length);
-
         int[] bits = new int[bytes.length * 8];
 
         for (int i = 0; i < bytes.length; i++) {
-            System.out.println("Bajt " + i + ": " + bytes[i] + " (" + (char)bytes[i] + ")");
             for (int j = 0; j < 8; j++) {
                 bits[i * 8 + j] = (bytes[i] >> (7 - j)) & 1;
             }
@@ -512,10 +453,8 @@ public class KnapsackGUIFX extends Application {
         return bits;
     }
 
-    // Konwersja bitów na tekst - z debugowaniem
+    // Konwersja bitów na tekst
     private String convertFromBits(String bitString) {
-        System.out.println("Ciąg bitów: " + bitString + " (długość: " + bitString.length() + ")");
-
         // Dopełnij do wielokrotności 8
         int padding = bitString.length() % 8;
         if (padding > 0) {
@@ -525,7 +464,6 @@ public class KnapsackGUIFX extends Application {
                 paddedBits.append("0");
             }
             bitString = paddedBits.toString();
-            System.out.println("Dopełniony ciąg bitów: " + bitString + " (długość: " + bitString.length() + ")");
         }
 
         if (bitString.isEmpty()) {
@@ -533,17 +471,13 @@ public class KnapsackGUIFX extends Application {
         }
 
         byte[] bytes = new byte[bitString.length() / 8];
-        System.out.println("Ilość bajtów wynikowych: " + bytes.length);
 
         for (int i = 0; i < bytes.length; i++) {
             String byteString = bitString.substring(i * 8, (i + 1) * 8);
             bytes[i] = (byte) Integer.parseInt(byteString, 2);
-            System.out.println("Bajt " + i + ": " + bytes[i] + " (" + (char)bytes[i] + ")");
         }
 
-        String result = new String(bytes);
-        System.out.println("Wynikowy tekst: '" + result + "'");
-        return result;
+        return new String(bytes);
     }
 
     // Parsowanie klucza prywatnego z tekstu
