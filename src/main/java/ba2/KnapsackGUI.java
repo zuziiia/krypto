@@ -36,10 +36,6 @@ public class KnapsackGUI extends Application {
         primaryStage.setTitle("Algorytm Plecakowy - Kryptografia");
         algorithm = new Algorithm();
 
-        generatedKey = new GeneratedKey();
-        mValue = generatedKey.getM();
-        nValue = generatedKey.getN();
-
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(10));
 
@@ -105,6 +101,11 @@ public class KnapsackGUI extends Application {
 
         root.setCenter(mainGrid);
         root.setBottom(buttonBox);
+
+        generatedKey = new GeneratedKey();
+        mValue = generatedKey.getM();
+        nValue = generatedKey.getN();
+        updateKeyFields();
 
         generateKeyButton.setOnAction(e -> {
             try {
