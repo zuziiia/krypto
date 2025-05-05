@@ -51,7 +51,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>ba2.KnapsackGUIFX2</mainClass>
+                    <mainClass>ba2.KnapsackGUI</mainClass>
                 </configuration>
             </plugin>
 
